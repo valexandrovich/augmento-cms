@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import axios from 'axios';
+import axios from '@/utils/axios.config';
 
 export const apiBaseURL = import.meta.env.VITE_API_BASE_URL;
 
@@ -16,9 +16,11 @@ export const useAuthStore = defineStore({
             console.log(apiBaseURL + '/auth/login')
             const response = await axios.post(apiBaseURL + '/auth/login', credentials);
             if (response.data && response.data.accessToken) {
+                console.log(response)
                 this.token = response.data.accessToken;
-                localStorage.setItem('jwt', response.data.token);
-                axios.defaults.headers.common['Authorization'] = 'Bearer ' + response.data.token;
+                localStorage.setItem('jwt', response.data.accessToken);
+                console.log('localStorage.setItem(\'jwt\', response.data.token); ' + response.data.accessToken)
+                axios.defaults.headers.common['Authorization'] = 'Bearer ' + response.data.accessToken;
                 this.user = response.data.user;
             }
         },

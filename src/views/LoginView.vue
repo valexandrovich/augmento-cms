@@ -4,6 +4,9 @@ import {useAuthStore} from "@/stores/auth";
 import { useRouter, useRoute } from 'vue-router';
 import {ref} from "vue";
 
+
+
+
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
@@ -22,6 +25,11 @@ const signIn = async () => {
     console.error('Error logging in:', error);
   }
 };
+
+
+
+
+
 </script>
 
 <template>
