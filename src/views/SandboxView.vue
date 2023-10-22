@@ -101,9 +101,7 @@ const tst = async () => {
       0.1
   );
 
-  const edge_t = new THREE.BoxGeometry(
-      1, 10, 0.1
-  )
+
 
   const corner_t_r = new THREE.BoxGeometry(
       1,
@@ -133,6 +131,15 @@ const tst = async () => {
     clearcoat: 1,
   });
 
+
+  const edge_t = new THREE.BoxGeometry(
+      10, 1, 0.1
+  )
+
+  edgeTexture.wrapS = THREE.RepeatWrapping;  // Enable horizontal wrapping
+  edgeTexture.wrapT = THREE.RepeatWrapping;  // Enable vertical wrapping
+  edgeTexture.repeat.set(10, 1);
+
   const materialEdge = new THREE.MeshPhysicalMaterial({
     envMapIntensity: 0.4,
     metalness: 0.3,
@@ -140,6 +147,12 @@ const tst = async () => {
     clearcoatRoughness: 0,
     clearcoat: 1,
   });
+
+  const mesh6 = new THREE.Mesh(edge_t, materialEdge);
+
+  const mesh7 = new THREE.Mesh(edge_t, materialEdge);
+  const mesh8 = new THREE.Mesh(edge_t, materialEdge);
+  const mesh9 = new THREE.Mesh(edge_t, materialEdge);
 
 
   const materialArtwork = new THREE.MeshPhysicalMaterial({
@@ -156,17 +169,28 @@ const tst = async () => {
   const mesh4 = new THREE.Mesh(corner_b_l, materialCorner);
   const mesh5 = new THREE.Mesh(corner_b_r, materialCorner);
 
-  const mesh6 = new THREE.Mesh(edge_t, materialCorner);
+
 
 
   mesh3.rotation.z = 1.5 * Math.PI;
   mesh4.rotation.z = Math.PI / 2;
   mesh5.rotation.z = Math.PI;
 
-  mesh2.position.set(-5, 5, 0.01)
-  mesh3.position.set(5, 5, 0.01)
-  mesh4.position.set(-5, -5, 0.01)
-  mesh5.position.set(5, -5, 0.01)
+  mesh7.rotation.z = Math.PI
+  mesh8.rotation.z = 1.5 * Math.PI
+  mesh9.rotation.z = Math.PI / 2
+
+
+
+  mesh2.position.set(-5, 5, 0.02)
+  mesh3.position.set(5, 5, 0.02)
+  mesh4.position.set(-5, -5, 0.02)
+  mesh5.position.set(5, -5, 0.02)
+
+  mesh6.position.set(0, 5, 0.01)
+  mesh7.position.set(0, -5, 0.01)
+  mesh8.position.set(5, 0, 0.01)
+  mesh9.position.set(-5, 0, 0.01)
 
   const sc = new THREE.Scene()
   sc.add(mesh1)
@@ -174,7 +198,10 @@ const tst = async () => {
   sc.add(mesh3)
   sc.add(mesh4)
   sc.add(mesh5)
-  // sc.add(mesh6)
+  sc.add(mesh6)
+  sc.add(mesh7)
+  sc.add(mesh8)
+  sc.add(mesh9)
 
 //
 //   const scene = new THREE.Scene();
