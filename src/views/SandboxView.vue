@@ -12,7 +12,9 @@ import {GLTFExporter} from "three/examples/jsm/exporters/GLTFExporter";
 import {ref} from "vue";
 
 let parallelepiped, cubeForCorners, cubeForEdges;
-
+import artwork from '@/assets/artwork.jpg'
+import corner from '@/assets/corner.jpg'
+import edge from '@/assets/edge.jpg'
 const loadModel = (path) => {
   return new Promise((resolve, reject) => {
     // const loader = new GLTFLoader();
@@ -78,18 +80,19 @@ const loadImage = async (imageData) => {
   });
 }
 
-import artwork from '@/assets/img/frames/black.jpg'
 const tst = async () => {
 
   await loadModels()
 
-  const texture =  await loadTexture('/artwork.JPG')
+  const artworkTexture =  await loadTexture(artwork)
+  const cornerTexture =  await loadTexture(corner)
+  const edgeTexture =  await loadTexture(edge)
 
 
   const geometry1 = new THREE.BoxGeometry(
       10,
       10,
-      0.01
+      0.1
   );
 
   const corner_t_l = new THREE.BoxGeometry(
@@ -97,6 +100,10 @@ const tst = async () => {
       1,
       0.1
   );
+
+  const edge_t = new THREE.BoxGeometry(
+      1, 10, 0.1
+  )
 
   const corner_t_r = new THREE.BoxGeometry(
       1,
@@ -118,25 +125,48 @@ const tst = async () => {
 
 
 
-  const material = new THREE.MeshPhysicalMaterial({
+  const materialCorner = new THREE.MeshPhysicalMaterial({
     envMapIntensity: 0.4,
     metalness: 0.3,
-    map: texture,
+    map: cornerTexture,
     clearcoatRoughness: 0,
     clearcoat: 1,
   });
 
-  const mesh1= new THREE.Mesh(geometry1, material);
-  const mesh2 = new THREE.Mesh(corner_t_l, material);
-  const mesh3 = new THREE.Mesh(corner_t_r, material);
-  const mesh4 = new THREE.Mesh(corner_b_l, material);
-  const mesh5 = new THREE.Mesh(corner_b_r, material);
+  const materialEdge = new THREE.MeshPhysicalMaterial({
+    envMapIntensity: 0.4,
+    metalness: 0.3,
+    map: edgeTexture,
+    clearcoatRoughness: 0,
+    clearcoat: 1,
+  });
 
 
-  mesh2.position.set(-5, 5, 0)
-  mesh3.position.set(5, 5, 0)
-  mesh4.position.set(-5, -5, 0)
-  mesh5.position.set(5, -5, 0)
+  const materialArtwork = new THREE.MeshPhysicalMaterial({
+    envMapIntensity: 0.4,
+    metalness: 0.3,
+    map: artworkTexture,
+    clearcoatRoughness: 0,
+    clearcoat: 1,
+  });
+
+  const mesh1= new THREE.Mesh(geometry1, materialArtwork);
+  const mesh2 = new THREE.Mesh(corner_t_l, materialCorner);
+  const mesh3 = new THREE.Mesh(corner_t_r, materialCorner);
+  const mesh4 = new THREE.Mesh(corner_b_l, materialCorner);
+  const mesh5 = new THREE.Mesh(corner_b_r, materialCorner);
+
+  const mesh6 = new THREE.Mesh(edge_t, materialCorner);
+
+
+  mesh3.rotation.z = 1.5 * Math.PI;
+  mesh4.rotation.z = Math.PI / 2;
+  mesh5.rotation.z = Math.PI;
+
+  mesh2.position.set(-5, 5, 0.01)
+  mesh3.position.set(5, 5, 0.01)
+  mesh4.position.set(-5, -5, 0.01)
+  mesh5.position.set(5, -5, 0.01)
 
   const sc = new THREE.Scene()
   sc.add(mesh1)
@@ -144,6 +174,7 @@ const tst = async () => {
   sc.add(mesh3)
   sc.add(mesh4)
   sc.add(mesh5)
+  // sc.add(mesh6)
 
 //
 //   const scene = new THREE.Scene();
@@ -283,6 +314,7 @@ const tst = async () => {
 </script>
 
 <template>
+  <img :src="corner" alt="">
   <div class="bg-gray-900">
     <div>Sandbox</div>
 
