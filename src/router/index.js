@@ -37,8 +37,9 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth) {
     if (!localStorage.getItem('jwt')) {
+      alert(localStorage.getItem('jwt'))
+      alert('Redirect from beforeEach()')
       next({ path: '/login',  query: { redirect: to.fullPath } });
-
     } else {
       next();
     }

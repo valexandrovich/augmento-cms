@@ -20,11 +20,15 @@ export const useAuthStore = defineStore({
                 this.token = response.data.accessToken;
                 localStorage.setItem('jwt', response.data.accessToken);
                 console.log('localStorage.setItem(\'jwt\', response.data.token); ' + response.data.accessToken)
+                alert(
+                    'Setting axios headers : ' + response.data.accessToken
+                )
                 axios.defaults.headers.common['Authorization'] = 'Bearer ' + response.data.accessToken;
                 this.user = response.data.user;
             }
         },
         logout() {
+            alert('logout from auth.js')
             this.token = null;
             this.user = null;
             localStorage.removeItem('jwt');
