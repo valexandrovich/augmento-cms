@@ -1,6 +1,11 @@
 module.exports = {
   purge: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
   darkMode: false, // or 'media' or 'class'
+  extend: {
+    animation: {
+      spin: 'spin 1s linear infinite',
+    }
+  },
   theme: {
     extend: {
       fontFamily: {

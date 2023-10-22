@@ -5,6 +5,16 @@
 @tailwind utilities;
 
 input {
-    @apply outline outline-1 outline-gray-300 rounded-md px-4 py-1 shadow-md mb-4;
+    @apply outline outline-1 outline-gray-300 rounded-md px-4 py-3 shadow-md mb-4;
 }
 
+
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
