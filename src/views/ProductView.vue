@@ -22,15 +22,15 @@ const framesMesh = ref([
   },
   {
     name: "Wood Complex",
-    preview: '/frames/Mesh/Wood/preview.png',
-    corner: '/frames/Mesh/Wood/corner.fbx',
-    edge: '/frames/Mesh/Wood/edge.fbx',
+    preview: 'frames/Mesh/Wood/preview.png',
+    corner: 'frames/Mesh/Wood/corner.fbx',
+    edge: 'frames/Mesh/Wood/edge.fbx',
   },
   {
     name: "Aluminium",
-    preview: '/frames/Mesh/Aluminium/preview.png',
-    corner: '/frames/Mesh/Aluminium/corner.fbx',
-    edge: '/frames/Mesh/Aluminium/edge.fbx',
+    preview: 'frames/Mesh/Aluminium/preview.png',
+    corner: 'frames/Mesh/Aluminium/corner.fbx',
+    edge: 'frames/Mesh/Aluminium/edge.fbx',
   }
 ])
 
