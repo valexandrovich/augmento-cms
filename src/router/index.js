@@ -6,6 +6,7 @@ import SignUpView from "@/views/SignUpView.vue";
 import AccountView from "@/views/AccountView.vue";
 import DashboardView from "@/views/DashboardView.vue";
 import SandboxView from "@/views/SandboxView.vue";
+import ProductView from "@/views/ProductView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -30,6 +31,11 @@ const router = createRouter({
       name: 'account',
       component: AccountView,
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/product',
+      name: 'product',
+      component: ProductView
     },
     {
       path: '/',

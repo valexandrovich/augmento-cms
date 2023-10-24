@@ -175,15 +175,15 @@ const tst = async () => {
   const center = new THREE.Vector3();
 
 
-  const artWorkX = 60
+  const artWorkX = 160
   const artWorkY = 40
   const artWorkZ = 0.5
-  const frameThin = 3
+  const frameThin = 10
 
   const artWorkXm = artWorkX / 100
-  const artWorkYm = artWorkY / 100
-  const artWorkZm = artWorkZ / 100
-  const frameThinM = frameThin / 100
+    const artWorkYm = artWorkY / 100
+    const artWorkZm = artWorkZ / 100
+    const frameThinM = frameThin / 100
 
 
   // const frameThin = 4
@@ -212,16 +212,16 @@ const tst = async () => {
   // const frameTexture = await loadTexture('/frames/Textures/Wood_1_Specualr.png')
 
 
-  const texture_basecolor = await loadTexture('/frames/Textures/Wood_Complex_basecolor2.png');
+  const texture_basecolor = await loadTexture('/frames/Textures/basecolor.png');
   const texture_metallic = await loadTexture('/frames/Textures/Wood_1_metallic.png');
   const texture_normal = await loadTexture('/frames/Textures/Wood_1_normal.png');
   const texture_Specular = await loadTexture('/frames/Textures/Wood_1_Specualr.png');
 
 
-  // const texture_basecolor = await loadTexture('/frames/Textures/Aluminium_basecolor2.png');
-  // const texture_metallic = await loadTexture('/frames/Textures/Aluminium_metallic.png');
-  // const texture_normal = await loadTexture('/frames/Textures/Aluminium_normal.png');
-  // const texture_Specular = await loadTexture('/frames/Textures/Aluminium_specular.png');
+  // const texture_basecolor = await loadTexture('/frames/Textures/basecolor.png');
+  // const texture_metallic = await loadTexture('/frames/Textures/metallic.png');
+  // const texture_normal = await loadTexture('/frames/Textures/normal.png');
+  // const texture_Specular = await loadTexture('/frames/Textures/specular.png');
 
   const frameMaterial = new THREE.MeshStandardMaterial({
     map: texture_basecolor,
@@ -545,7 +545,7 @@ const tst = async () => {
 
 
   // const texture = await loadTexture('/frames/Textures/Wood_1_Specualr.png');
-  // // const texture = await loadTexture('/frames/Textures/Aluminium_specular.png');
+  // // const texture = await loadTexture('/frames/Textures/specular.png');
   // // const texture = await loadTexture('/frames/Textures/Wood_1_normal.png');
   // const texturedMaterial = new THREE.MeshBasicMaterial({ map: texture });
   // console.log('TMTMTM' + texturedMaterial)
@@ -963,7 +963,7 @@ const tst = async () => {
 </script>
 
 <template>
-  <div class="bg-gray-900">
+    <div class="bg-gray-900">
     <div>Sandbox</div>
 
     <button @click="tst" class="bg-amber-300 p-5 text-black font-semibold">TST</button>
