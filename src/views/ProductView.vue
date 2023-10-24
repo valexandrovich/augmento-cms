@@ -41,19 +41,19 @@ const framesTexture = ref([
   },
   {
     name: "Wood",
-    preview: '/frames/Textures/Wood/basecolor.png',
-    basecolor: '/frames/Textures/Wood/basecolor.png',
-    metallic: '/frames/Textures/Wood/metallic.png',
-    normal: '/frames/Textures/Wood/normal.png',
-    specular: '/frames/Textures/Wood/specular.png'
+    preview: 'frames/Textures/Wood/basecolor.png',
+    basecolor: 'frames/Textures/Wood/basecolor.png',
+    metallic: 'frames/Textures/Wood/metallic.png',
+    normal: 'frames/Textures/Wood/normal.png',
+    specular: 'frames/Textures/Wood/specular.png'
   },
   {
     name: "Aluminium",
-    preview: '/frames/Textures/Aluminium/basecolor.png',
-    basecolor: '/frames/Textures/Aluminium/basecolor.png',
-    metallic: '/frames/Textures/Aluminium/metallic.png',
-    normal: '/frames/Textures/Aluminium/normal.png',
-    specular: '/frames/Textures/Aluminium/specular.png'
+    preview: 'frames/Textures/Aluminium/basecolor.png',
+    basecolor: 'frames/Textures/Aluminium/basecolor.png',
+    metallic: 'frames/Textures/Aluminium/metallic.png',
+    normal: 'frames/Textures/Aluminium/normal.png',
+    specular: 'frames/Textures/Aluminium/specular.png'
   }
 
 ])
