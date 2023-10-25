@@ -1,16 +1,25 @@
 <script setup>
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-light.css'
-import {onMounted, ref} from "vue";
+import {onMounted, reactive, ref} from "vue";
+import {getProducts, getProjects} from "@/services/backend.api";
+import router from "@/router";
 
-import axios from "@/utils/axios.config";
-
-const apiBaseURL = import.meta.env.VITE_API_BASE_URL;
+// const apiBaseURL = import.meta.env.VITE_API_BASE_URL;
 
 const codeBlock = ref(null);
 
-onMounted(() => {
-  fetchProjects()
+const state = reactive({
+  projects: []
+})
+
+onMounted(async () => {
+  state.projects = await getProjects()
+
+  for (const p of state.projects) {
+    p['products'] = await getProducts(p._id)
+  }
+
   if (codeBlock.value) {
     hljs.highlightElement(codeBlock.value);
   }
@@ -23,14 +32,6 @@ const copyCode = () => {
   }
 }
 
-const fetchProjects = async () => {
-  console.log('fetching ')
-  console.log(apiBaseURL)
-  axios.get(apiBaseURL + '/v1/project')
-      .then(resp => {
-        console.log(resp)
-      })
-}
 </script>
 
 <template>
@@ -41,24 +42,11 @@ const fetchProjects = async () => {
         <span class="text-2xl font-bold">My projects</span>
 
         <div class="flex flex-col md:flex-row md:flex-wrap gap-5 mt-4">
-
-          <div
+          <div v-for="p in state.projects" :key="p._id" @click="router.push('/project/' + p._id)"
               class="bg-white py-6 px-24 flex flex-col items-center rounded-lg shadow-lg hover:bg-gray-200 hover:cursor-pointer">
-            <span class="text-2xl font-semibold whitespace-nowrap">Project Title</span>
-            <span class="mt-4">50 products</span>
+            <span class="text-2xl font-semibold whitespace-nowrap">{{p.title}}</span>
+            <span class="mt-4">{{p.products?.length}} products</span>
           </div>
-          <div
-              class="bg-white py-6 px-24 flex flex-col items-center rounded-lg shadow-lg hover:bg-gray-200 hover:cursor-pointer">
-            <span class="text-2xl font-semibold whitespace-nowrap">Project Title</span>
-            <span class="mt-4">50 products</span>
-          </div>
-          <div
-              class="bg-white py-6 px-24 flex flex-col items-center rounded-lg shadow-lg hover:bg-gray-200 hover:cursor-pointer">
-            <span class="text-2xl font-semibold whitespace-nowrap">Project Title</span>
-            <span class="mt-4">50 products</span>
-          </div>
-
-
         </div>
 
       </div>

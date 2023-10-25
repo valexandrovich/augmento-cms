@@ -11,56 +11,27 @@ import {GLTFLoader} from "three/addons/loaders/GLTFLoader";
 
 const route = useRoute();
 
+const isSaving = ref(false)
+
+
 const fileInput = ref(null);
 
-const framesMesh = ref([
-  {
-    name: "No frame",
-    preview: null,
-    corner: null,
-    edge: null,
-  },
-  {
-    name: "Wood Complex",
-    preview: 'frames/Mesh/Wood/preview.png',
-    corner: 'frames/Mesh/Wood/corner.fbx',
-    edge: 'frames/Mesh/Wood/edge.fbx',
-  },
-  {
-    name: "Aluminium",
-    preview: 'frames/Mesh/Aluminium/preview.png',
-    corner: 'frames/Mesh/Aluminium/corner.fbx',
-    edge: 'frames/Mesh/Aluminium/edge.fbx',
-  }
-])
-
-const framesTexture = ref([
-  {
-    name: "No texture",
-    preview: null
-  },
-  {
-    name: "Wood",
-    preview: 'frames/Textures/Wood/basecolor.png',
-    basecolor: 'frames/Textures/Wood/basecolor.png',
-    metallic: 'frames/Textures/Wood/metallic.png',
-    normal: 'frames/Textures/Wood/normal.png',
-    specular: 'frames/Textures/Wood/specular.png'
-  },
-  {
-    name: "Aluminium",
-    preview: 'frames/Textures/Aluminium/basecolor.png',
-    basecolor: 'frames/Textures/Aluminium/basecolor.png',
-    metallic: 'frames/Textures/Aluminium/metallic.png',
-    normal: 'frames/Textures/Aluminium/normal.png',
-    specular: 'frames/Textures/Aluminium/specular.png'
-  }
-
-])
-
+import {framesMesh} from "@/stores/frames";
+import {framesTexture} from "@/stores/frames";
+import {getProjects} from "@/services/backend.api";
+import axios from "@/utils/axios.config";
 
 const state = reactive({
+
+  projects: [],
+
   productId: null,
+
+  title: '',
+  status: 'online',
+  projectId: '',
+
+
   thumbnailFile: null,
   thumbnailFileType: null,
   thumbnailFileData: null,
@@ -87,9 +58,23 @@ const state = reactive({
 
 })
 
-onMounted(()=>{
+onMounted(() => {
   state.selectedFrameMesh = framesMesh.value[0]
   state.selectedFrameTexture = framesTexture.value[0]
+
+  getProjects().then(
+      resp => {
+        state.projects = resp
+        state.projectId = state.projects[0]._id
+      }
+  )
+
+  if (route.name == 'product-edit') {
+    state.productId = route.params.id;
+  } else if (route.name == 'product-create') {
+    // console.log('new')
+  }
+
 })
 
 watch(() => state.frameThin, (newValue, oldValue) => {
@@ -175,7 +160,7 @@ const buildFrame = async () => {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve) => {
 
-    if (state.selectedFrameMesh.preview == null){
+    if (state.selectedFrameMesh.preview == null) {
       resolve(null)
       return
     }
@@ -377,8 +362,6 @@ const buildFrame = async () => {
     frameMesh.add(backMesh)
 
 
-
-
     const frameTexture = state.selectedFrameTexture
 
     let frameMaterial = new THREE.MeshStandardMaterial({
@@ -388,7 +371,7 @@ const buildFrame = async () => {
       side: THREE.DoubleSide
     });
 
-    if (frameTexture.preview != null){
+    if (frameTexture.preview != null) {
       const basecolor = await loadTexture(frameTexture.basecolor)
       const metallic = await loadTexture(frameTexture.metallic)
       const normal = await loadTexture(frameTexture.normal)
@@ -404,7 +387,6 @@ const buildFrame = async () => {
         side: THREE.DoubleSide
       });
     }
-
 
 
     TLC.traverse((child) => {
@@ -514,38 +496,96 @@ const selectFrameTexture = (frameTexture) => {
   refreshModel()
 }
 
+const fetchBlob = async (blobUrl) => {
+  return new Promise((resolve, reject) => {
+    fetch(blobUrl)
+        .then(resp => {
+          resolve(resp.blob())
+        })
+        .catch(err => reject(err))
+  })
+}
+
+
+const saveProduct = async () => {
+  isSaving.value = true
+
+  const modelBlob = await fetchBlob(state.gltfUrl)
+  let data = new FormData();
+
+  data.append('title', state.title);
+  data.append('placementType', state.placement);
+  data.append('status', state.status);
+  data.append('artworkProps[arWidth]', state.artworkMeshXm);
+  data.append('artworkProps[arHeight]', state.artworkMeshYm);
+  data.append('artworkProps[frameWidth]', state.frameThin);
+  data.append('artworkProps[frameThickness]', state.frameDepth);
+  data.append('artworkProps[typeOfFrame][mesh]', state.selectedFrameMesh.id);
+  data.append('artworkProps[typeOfFrame][texture]', state.selectedFrameTexture.id);
+  data.append('projectId', state.projectId);
+
+  data.append('model', modelBlob);
+  data.append('preview', state.thumbnailFile);
+  data.append('artworkImage', state.thumbnailFile);
+
+  let config = {
+    method: 'post',
+    maxBodyLength: Infinity,
+    url: 'https://augmento-dev.space/api/development/v1/product',
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    data: data
+  };
+
+  axios.request(config)
+      .then((response) => {
+        isSaving.value = false
+        console.log(JSON.stringify(response.data));
+      })
+
+      .catch((error) => {
+        isSaving.value = false
+        console.log(error);
+      });
+
+
+}
+
 
 </script>
 
 <template>
-
   <div class="flex flex-col p-12">
-
-
     <div class="flex flex-row">
-
       <h1 class="text-2xl font-semibold ">Add / Edit product</h1>
     </div>
-    <div class="flex flex-col md:flex-row   mb-12 ">
+
+    <div class="flex flex-col md:flex-row   mb-4 ">
       <div class="flex flex-1 flex-col mt-4 md:mr-12">
         <h3>Title</h3>
-        <input type="text">
+        <input type="text" v-model="state.title">
       </div>
       <div class="flex flex-1  flex-col  mt-4">
         <h3>Status</h3>
         <div class="flex flex-row flex-1 flex-wrap gap-5">
-          <select>
-            <option>Online</option>
-            <option>Offline</option>
+          <select v-model="state.status">
+            <option>online</option>
+            <option>inProgress</option>
           </select>
           <button>Preview</button>
           <button>Request model service</button>
-          <button class="bg-red-100 text-red-600 hover:bg-red-200">Delete product</button>
+          <button class="bg-red-100 text-red-600 hover:bg-red-200" v-if="state.productId">Delete product</button>
         </div>
       </div>
     </div>
-
-    <div class="flex flex-col md:flex-row">
+    <div class="flex flex-col md:flex-row items-center">
+      <span class="font-semibold mr-4">Select project</span>
+      <select v-if="state.projects.length > 0" v-model="state.projectId">
+        <option v-for="p in state.projects" :key="p._id" :value="p._id">{{ p.title }}</option>
+      </select>
+    </div>
+    <div class="flex flex-col md:flex-row mt-4">
       <div class="flex flex-1 flex-col">
         <h3>Thumbnail</h3>
         <div class="flex flex-col md:flex-row">
@@ -628,8 +668,8 @@ const selectFrameTexture = (frameTexture) => {
     <div class="flex flex-col mt-2" v-if="state.thumbnailFile">
       <span class="font-semibold"> Select frame model</span>
       <div class="flex flex-row   flex-nowrap overflow-x-scroll">
-        <div v-for="f in framesMesh" :key="f.name" class="frame-container" @click="selectFrameMesh(f)"
-             :class="state.selectedFrameMesh?.name === f.name ? 'bg-blue-200' : ''"
+        <div v-for="f in framesMesh" :key="f.id" class="frame-container" @click="selectFrameMesh(f)"
+             :class="state.selectedFrameMesh?.id === f.id ? 'bg-blue-200' : ''"
         >
           <div class="p-2">
             <img v-if="f.preview != null" :src="f.preview" alt="" class="h-24 hover:border-4 border-2">
@@ -650,8 +690,8 @@ const selectFrameTexture = (frameTexture) => {
     <div class="flex flex-col mt-2" v-if="state.thumbnailFile">
       <span class="font-semibold"> Select frame texture</span>
       <div class="flex flex-row   flex-nowrap overflow-x-scroll">
-        <div v-for="t in framesTexture" :key="t.name" class="frame-container   " @click="selectFrameTexture(t)"
-             :class="state.selectedFrameTexture?.name === t.name ? 'bg-blue-200' : ''"
+        <div v-for="t in framesTexture" :key="t.id" class="frame-container   " @click="selectFrameTexture(t)"
+             :class="state.selectedFrameTexture?.id === t.id ? 'bg-blue-200' : ''"
 
         >
           <div class="p-2 ">
@@ -670,8 +710,11 @@ const selectFrameTexture = (frameTexture) => {
     </div>
 
 
-    <div class="flex flex-row">
-      <button class="save-button">Save</button>
+    <div class="flex flex-row mt-4">
+      <button class="save-button bg-blue-500 text-white hover:bg-blue-400 px-12" @click="saveProduct">
+        <span v-if="!isSaving">Save</span>
+        <div v-else class="circle-loader  transform -translate-x-1/2 -translate-y-1/2"></div>
+      </button>
     </div>
   </div>
 </template>
@@ -689,5 +732,24 @@ const selectFrameTexture = (frameTexture) => {
   min-width: 100px;
   min-height: 150px;
   cursor: pointer;
+}
+
+
+.circle-loader {
+  border: 5px solid #f3f3f3; /* Light gray */
+  border-top: 5px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

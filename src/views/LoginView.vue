@@ -64,7 +64,7 @@ const signIn = async () => {
         <div class="flex flex-col bg-white p-8  rounded-md md:w-[512px] shadow-xl">
           <span class="font-semibold text-gray-800 mb-2">Email</span>
           <input type="text" v-model="email">
-          <span class="font-semibold text-gray-800 mb-2">Password</span>
+          <span class="font-semibold text-gray-800 mb-2 mt-4">Password</span>
           <input type="password" v-model="password">
           <button class="bg-blue-500 text-white hover:bg-blue-400 py-4 rounded-lg mt-6" @click="signIn">Sign In</button>
           <button

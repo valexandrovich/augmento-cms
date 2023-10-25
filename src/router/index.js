@@ -6,6 +6,7 @@ import SignUpView from "@/views/SignUpView.vue";
 import AccountView from "@/views/AccountView.vue";
 import DashboardView from "@/views/DashboardView.vue";
 import ProductView from "@/views/ProductView.vue";
+import ProjectView from "@/views/ProjectView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,9 +28,26 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/product',
+      path: '/project/:id',
+      name: 'project',
+      component: ProjectView
+    },
+    {
+      path: '/project',
+      name: 'project-create',
+      component: ProjectView
+    },
+    {
+      path: '/product/:id',
       name: 'product',
-      component: ProductView
+      component: ProductView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/product',
+      name: 'product-create',
+      component: ProductView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/',
@@ -43,8 +61,8 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth) {
     if (!localStorage.getItem('jwt')) {
-      alert(localStorage.getItem('jwt'))
-      alert('Redirect from beforeEach()')
+      // alert(localStorage.getItem('jwt'))
+      // alert('Redirect from beforeEach()')
       next({ path: '/login',  query: { redirect: to.fullPath } });
     } else {
       next();

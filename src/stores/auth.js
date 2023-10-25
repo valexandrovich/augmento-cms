@@ -12,23 +12,23 @@ export const useAuthStore = defineStore({
     }),
     actions: {
         async login(credentials) {
-            console.log(credentials)
-            console.log(apiBaseURL + '/auth/login')
+            // console.log(credentials)
+            // console.log(apiBaseURL + '/auth/login')
             const response = await axios.post(apiBaseURL + '/auth/login', credentials);
             if (response.data && response.data.accessToken) {
-                console.log(response)
+                // console.log(response)
                 this.token = response.data.accessToken;
                 localStorage.setItem('jwt', response.data.accessToken);
-                console.log('localStorage.setItem(\'jwt\', response.data.token); ' + response.data.accessToken)
-                alert(
-                    'Setting axios headers : ' + response.data.accessToken
-                )
+                // console.log('localStorage.setItem(\'jwt\', response.data.token); ' + response.data.accessToken)
+                // alert(
+                //     'Setting axios headers : ' + response.data.accessToken
+                // )
                 axios.defaults.headers.common['Authorization'] = 'Bearer ' + response.data.accessToken;
                 this.user = response.data.user;
             }
         },
         logout() {
-            alert('logout from auth.js')
+            // alert('logout from auth.js')
             this.token = null;
             this.user = null;
             localStorage.removeItem('jwt');
