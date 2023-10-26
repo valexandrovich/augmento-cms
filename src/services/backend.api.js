@@ -16,7 +16,7 @@ export const getProjects = async () => {
 
 export const getProducts = async (projectId) => {
     return new Promise((resolve, reject) => {
-        axios.get(apiBaseURL + '/v1/product/' + projectId)
+        axios.get(apiBaseURL + '/v1/product/project/' + projectId)
             .then(resp => {
                 resolve(resp.data)
             })
