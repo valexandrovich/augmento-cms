@@ -7,16 +7,11 @@ import AccountView from "@/views/AccountView.vue";
 import DashboardView from "@/views/DashboardView.vue";
 import ProductView from "@/views/ProductView.vue";
 import ProjectView from "@/views/ProjectView.vue";
-import SandboxView from "@/views/SandboxView.vue";
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
-        {
-            path: '/sandbox',
-            name: 'sandbox',
-            component: SandboxView
-        },
+
         {
             path: '/login',
             name: 'login',

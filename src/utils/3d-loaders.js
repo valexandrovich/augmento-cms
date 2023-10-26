@@ -1,5 +1,5 @@
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader";
-import * as THREE from "three";
+import {TextureLoader} from "three";
 import {FBXLoader} from "three/addons/loaders/FBXLoader";
 
 export const loadGltf = (path) => {
@@ -31,7 +31,7 @@ export const loadFbx = async (path) => {
 
 export const loadTexture = async (path) => {
     return new Promise((resolve, reject) => {
-        const loader = new THREE.TextureLoader();
+        const loader = new TextureLoader();
         loader.load(
             path,
             (texture) => {

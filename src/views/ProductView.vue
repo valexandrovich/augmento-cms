@@ -3,23 +3,41 @@
 import {useRoute} from "vue-router";
 import {onMounted, reactive, ref, watch} from "vue";
 
-import * as THREE from "three";
+
+import Toastify from 'toastify-js';
+import 'toastify-js/src/toastify.css';
+
+import {
+  Box3,
+  BoxGeometry, DoubleSide,
+  Group,
+  Mesh,
+  MeshPhysicalMaterial,
+  MeshStandardMaterial,
+  Scene,
+  Texture, Vector2,
+  Vector3
+} from "three";
 import {GLTFExporter} from "three/examples/jsm/exporters/GLTFExporter";
 
-import {loadFbx, loadGltf, loadTexture} from "@/utils/3d-loaders";
-import {GLTFLoader} from "three/addons/loaders/GLTFLoader";
+import {loadFbx, loadTexture} from "@/utils/3d-loaders";
 
 const route = useRoute();
 
 const isSaving = ref(false)
 
+const modelLink = ref(null)
+
 
 const fileInput = ref(null);
 
+const isPreviewOpen = ref(false)
+
 import {framesMesh} from "@/stores/frames";
 import {framesTexture} from "@/stores/frames";
-import {getProjects} from "@/services/backend.api";
+import {getProduct, getProjects} from "@/services/backend.api";
 import axios from "@/utils/axios.config";
+import {max} from "three/nodes";
 
 const state = reactive({
 
@@ -42,7 +60,6 @@ const state = reactive({
 
   modelUrl: null,
   modelCompressedUrl: null,
-
 
 
   isGlass: true,
@@ -74,16 +91,83 @@ onMounted(() => {
       }
   )
 
-  if (route.name == 'product-edit') {
+
+  if (route.params.id) {
     state.productId = route.params.id;
-  } else if (route.name == 'product-create') {
-    // console.log('new')
+    fetchProduct();
   }
+
 
 })
 
-watch(() => state.frameThin, (newValue, oldValue) => {
-  console.log(oldValue, newValue)
+const getFileFromImageUrl = async (url) => {
+  const response = await fetch(url);
+  const imageBlob = await response.blob();
+  const imageFile = new File([imageBlob],  { type: imageBlob.type });
+  return imageFile;
+}
+
+const fetchProduct = async () => {
+  const product = await getProduct(state.productId)
+  console.log(product)
+  state.artworkFileUrl =  product.artworkImageUrl
+  state.artworkImage = await loadImage(state.artworkFileUrl)
+
+  const artworkFile = await  getFileFromImageUrl(state.artworkFileUrl)
+
+  state.artworkFileCompressed = await compressImage(artworkFile, 0.1)
+  state.artworkFileCompressedUrl = URL.createObjectURL(state.artworkFileCompressed)
+  state.artworkImageCompressed = await loadImage(state.artworkFileCompressedUrl)
+
+
+  // state.artworkFileCompressedUrl =  product.previewUrl
+  // state.artworkImageCompressed = await loadImage(state.artworkFileCompressedUrl)
+  // state.artworkFileUrl =  product.artworkImageUrl
+  // state.modelCompressedUrl = product.modelUrl
+  //
+  state.title = product.title
+  state.placement = product.placementType
+  state.status = product.status
+
+  state.artWorkMaxSize = Math.max(
+      product.artworkProps.arHeight * 100,
+      product.artworkProps.arWidth * 100
+  )
+
+
+  state.frameThin = product.artworkProps.frameWidth
+  state.frameDepth = product.artworkProps.frameThickness
+
+  state.projectId = product._projectId
+
+  // console.log('product.artworkProps.typeOfFrame.mesh')
+  // console.log(product.artworkProps.typeOfFrame.mesh)
+
+  // state.selectedFrameMesh =  product.artworkProps.typeOfFrame.mesh
+  // state.selectedFrameTexture = product.artworkProps.typeOfFrame.texture
+
+  state.selectedFrameMesh = framesMesh.value.find(frame => frame.id == product.artworkProps.typeOfFrame.mesh)
+  state.selectedFrameTexture = framesTexture.value.find(frame => frame.id == product.artworkProps.typeOfFrame.texture)
+
+  await refreshModel()
+
+
+  // const file = await fetchBlob(product.modelUrl)
+  // console.log(file)
+
+  // gltfToBlob(gltfUrl);
+
+
+
+
+
+  // console.log(product.modelUrl)
+
+
+
+}
+
+watch(() => state.frameThin, () => {
   refreshModel()
 });
 
@@ -105,6 +189,7 @@ const openFileDialog = () => {
 };
 
 const handleThumbnail = async (event) => {
+
   const inputElement = event.target;
   if (inputElement.files && inputElement.files.length > 0) {
 
@@ -117,14 +202,6 @@ const handleThumbnail = async (event) => {
     state.artworkImageCompressed = await loadImage(state.artworkFileCompressedUrl)
 
     await refreshModel()
-    // state.thumbnailFileType = state.thumbnailFile.name.match(/\.[0-9a-z]+$/i)[0];
-    // const reader = new FileReader();
-    // reader.onload = async (e) => {
-    //   state.thumbnailFileData = e.target.result
-    //   await loadThumbnailImage()
-    //   await refreshModel()
-    // }
-    // reader.readAsDataURL(state.thumbnailFile);
   }
 }
 
@@ -134,7 +211,8 @@ const compressImage = (file, qualityCof) => {
     img.src = URL.createObjectURL(file);
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      // const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', {willReadFrequently: true});
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -165,12 +243,15 @@ const loadImage = async (imageFileUrl) => {
   });
 }
 
-const buildArtWorkMesh = async () => {
+const buildArtWorkMesh = async (textureImage) => {
+
   return new Promise((resolve) => {
-    const texture = new THREE.Texture(state.artworkImage);
-    const longerSide = state.artworkImage.height > state.artworkImage.width ? 'height' : 'width'
-    const hCof = state.artworkImage.height / state.artworkImage.width
-    const wCof = state.artworkImage.width / state.artworkImage.height
+    // const texture = new Texture(state.artworkImage);
+    const texture = new Texture(textureImage);
+    const longerSide = textureImage.height > textureImage.width ? 'height' : 'width'
+    const hCof = textureImage.height / textureImage.width
+    const wCof = textureImage.width / textureImage.height
+
 
     if (longerSide === 'height') {
       state.artworkMeshYm = state.artWorkMaxSize / 100
@@ -179,24 +260,25 @@ const buildArtWorkMesh = async () => {
       state.artworkMeshXm = state.artWorkMaxSize / 100
       state.artworkMeshYm = hCof * state.artworkMeshXm
     }
-    const geometry = new THREE.BoxGeometry(
+    const geometry = new BoxGeometry(
         state.artworkMeshXm,
         state.artworkMeshYm,
         0.01
     );
-    const material = new THREE.MeshPhysicalMaterial({
+    const material = new MeshPhysicalMaterial({
       envMapIntensity: 0.4,
       map: texture,
       metalness: 0.3,
       clearcoatRoughness: state.isGlass ? 0 : 1,
       clearcoat: state.isGlass ? 1 : 0,
     });
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new Mesh(geometry, material);
     resolve(mesh)
   })
 }
 
 const buildFrame = async () => {
+
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve) => {
 
@@ -208,8 +290,8 @@ const buildFrame = async () => {
     const cornerFbx = await loadFbx(state.selectedFrameMesh.corner)
     const edgeFbx = await loadFbx(state.selectedFrameMesh.edge)
 
-    const frameMesh = new THREE.Group()
-    const center = new THREE.Vector3();
+    const frameMesh = new Group()
+    const center = new Vector3();
 
     if (state.frameThin === '' || state.frameThin === '0') {
       resolve(null)
@@ -217,8 +299,8 @@ const buildFrame = async () => {
 
     const frameThinM = state.frameThin / 100
     const TLC = cornerFbx.clone();
-    let boxTLC = new THREE.Box3().setFromObject(TLC);
-    const TLCsize = new THREE.Vector3();
+    let boxTLC = new Box3().setFromObject(TLC);
+    const TLCsize = new Vector3();
     boxTLC.getSize(TLCsize);
     boxTLC.getCenter(center);
     TLC.position.sub(center);
@@ -227,7 +309,7 @@ const buildFrame = async () => {
     const scaleFactorTLC = desiredWidthTLC / currentWidthTLC;
     TLC.scale.set(scaleFactorTLC, scaleFactorTLC, scaleFactorTLC);
     // TLC.scale.set(0.01, 0.01, 0.01);
-    boxTLC = new THREE.Box3().setFromObject(TLC);
+    boxTLC = new Box3().setFromObject(TLC);
     boxTLC.getSize(TLCsize);
     boxTLC.getCenter(center);
     TLC.position.sub(center);
@@ -237,8 +319,8 @@ const buildFrame = async () => {
 
     const TRC = cornerFbx.clone();
     TRC.rotation.z = 1.5 * Math.PI
-    let boxTRC = new THREE.Box3().setFromObject(TRC);
-    const TRCsize = new THREE.Vector3();
+    let boxTRC = new Box3().setFromObject(TRC);
+    const TRCsize = new Vector3();
     boxTRC.getSize(TRCsize);
     boxTRC.getCenter(center);
     TRC.position.sub(center);
@@ -246,7 +328,7 @@ const buildFrame = async () => {
     const currentWidthTRC = TRCsize.x;
     const scaleFactorTRC = desiredWidthTRC / currentWidthTRC;
     TRC.scale.set(scaleFactorTRC, scaleFactorTRC, scaleFactorTRC);
-    boxTRC = new THREE.Box3().setFromObject(TRC);
+    boxTRC = new Box3().setFromObject(TRC);
     boxTRC.getSize(TRCsize);
     boxTRC.getCenter(center);
     TRC.position.sub(center);
@@ -257,8 +339,8 @@ const buildFrame = async () => {
 
     const BRC = cornerFbx.clone();
     BRC.rotation.z = Math.PI
-    let boxBRC = new THREE.Box3().setFromObject(BRC);
-    const BRCsize = new THREE.Vector3();
+    let boxBRC = new Box3().setFromObject(BRC);
+    const BRCsize = new Vector3();
     boxBRC.getSize(BRCsize);
     boxBRC.getCenter(center);
     BRC.position.sub(center);
@@ -266,7 +348,7 @@ const buildFrame = async () => {
     const currentWidthBRC = BRCsize.x;
     const scaleFactorBRC = desiredWidthBRC / currentWidthBRC;
     BRC.scale.set(scaleFactorBRC, scaleFactorBRC, scaleFactorBRC);
-    boxBRC = new THREE.Box3().setFromObject(BRC);
+    boxBRC = new Box3().setFromObject(BRC);
     boxBRC.getSize(BRCsize);
     boxBRC.getCenter(center);
     BRC.position.sub(center);
@@ -276,8 +358,8 @@ const buildFrame = async () => {
 
     const BLC = cornerFbx.clone();
     BLC.rotation.z = Math.PI / 2
-    let boxBLC = new THREE.Box3().setFromObject(BLC);
-    const BLCsize = new THREE.Vector3();
+    let boxBLC = new Box3().setFromObject(BLC);
+    const BLCsize = new Vector3();
     boxBLC.getSize(BLCsize);
     boxBLC.getCenter(center);
     BLC.position.sub(center);
@@ -285,7 +367,7 @@ const buildFrame = async () => {
     const currentWidthBLC = BLCsize.x;
     const scaleFactorBLC = desiredWidthBLC / currentWidthBLC;
     BLC.scale.set(scaleFactorBLC, scaleFactorBLC, scaleFactorBLC);
-    boxBLC = new THREE.Box3().setFromObject(BLC);
+    boxBLC = new Box3().setFromObject(BLC);
     boxBLC.getSize(BLCsize);
     boxBLC.getCenter(center);
     BLC.position.sub(center);
@@ -294,8 +376,8 @@ const buildFrame = async () => {
     frameMesh.add(BLC);
 
     const TE = edgeFbx.clone()
-    let boxTE = new THREE.Box3().setFromObject(TE);
-    const TESize = new THREE.Vector3()
+    let boxTE = new Box3().setFromObject(TE);
+    const TESize = new Vector3()
     boxTE.getCenter(center);
     boxTE.getSize(TESize)
     TE.position.sub(center)
@@ -306,7 +388,7 @@ const buildFrame = async () => {
     const desiredWidthTE = state.artworkMeshXm;
     const scaleFactorXTE = desiredWidthTE / currentWidthTE;
     TE.scale.set(scaleFactorXTE, scaleFactorYTE, scaleFactorYTE);
-    boxTE = new THREE.Box3().setFromObject(TE);
+    boxTE = new Box3().setFromObject(TE);
     boxTE.getCenter(center);
     boxTE.getSize(TESize)
     TE.position.sub(center)
@@ -315,8 +397,8 @@ const buildFrame = async () => {
 
     const BE = edgeFbx.clone()
     BE.rotation.z = Math.PI
-    let boxBE = new THREE.Box3().setFromObject(BE);
-    const BESize = new THREE.Vector3()
+    let boxBE = new Box3().setFromObject(BE);
+    const BESize = new Vector3()
     boxBE.getCenter(center);
     boxBE.getSize(BESize)
     BE.position.sub(center)
@@ -327,7 +409,7 @@ const buildFrame = async () => {
     const desiredWidthBE = state.artworkMeshXm;
     const scaleFactorXBE = desiredWidthBE / currentWidthBE;
     BE.scale.set(scaleFactorXBE, scaleFactorYBE, scaleFactorYBE);
-    boxBE = new THREE.Box3().setFromObject(BE);
+    boxBE = new Box3().setFromObject(BE);
     boxBE.getCenter(center);
     boxBE.getSize(BESize)
     BE.position.sub(center)
@@ -336,8 +418,8 @@ const buildFrame = async () => {
 
     const LE = edgeFbx.clone()
     LE.rotation.z = Math.PI / 2
-    let boxLE = new THREE.Box3().setFromObject(LE);
-    const LEsize = new THREE.Vector3();
+    let boxLE = new Box3().setFromObject(LE);
+    const LEsize = new Vector3();
     boxLE.getCenter(center);
     boxLE.getSize(LEsize)
     LE.position.sub(center)
@@ -348,10 +430,10 @@ const buildFrame = async () => {
     const currentHeightLE = LEsize.y;
     const scaleFactorYLE = desiredHeightLE / currentHeightLE;
     LE.scale.set(scaleFactorYLE, scaleFactorXLE, scaleFactorXLE)
-    boxLE = new THREE.Box3().setFromObject(LE);
+    boxLE = new Box3().setFromObject(LE);
     boxLE.getCenter(center);
     LE.position.sub(center)
-    boxLE = new THREE.Box3().setFromObject(LE);
+    boxLE = new Box3().setFromObject(LE);
     boxLE.getCenter(center)
     boxLE.getSize(LEsize)
     LE.position.sub(center);
@@ -360,8 +442,8 @@ const buildFrame = async () => {
 
     const RE = edgeFbx.clone()
     RE.rotation.z = 1.5 * Math.PI
-    let boxRE = new THREE.Box3().setFromObject(RE);
-    const REsize = new THREE.Vector3();
+    let boxRE = new Box3().setFromObject(RE);
+    const REsize = new Vector3();
     boxRE.getCenter(center);
     boxRE.getSize(REsize)
     RE.position.sub(center)
@@ -372,10 +454,10 @@ const buildFrame = async () => {
     const currentHeightRE = REsize.y;
     const scaleFactorYRE = desiredHeightRE / currentHeightRE;
     RE.scale.set(scaleFactorYRE, scaleFactorXRE, scaleFactorXRE)
-    boxRE = new THREE.Box3().setFromObject(RE);
+    boxRE = new Box3().setFromObject(RE);
     boxRE.getCenter(center);
     RE.position.sub(center)
-    boxRE = new THREE.Box3().setFromObject(RE);
+    boxRE = new Box3().setFromObject(RE);
     boxRE.getCenter(center)
     boxRE.getSize(REsize)
     RE.position.sub(center);
@@ -383,12 +465,12 @@ const buildFrame = async () => {
     frameMesh.add(RE)
 
 
-    const back = new THREE.BoxGeometry(
+    const back = new BoxGeometry(
         state.artworkMeshXm,
         state.artworkMeshYm,
         0.01)
 
-    const backMaterial = new THREE.MeshPhysicalMaterial({
+    const backMaterial = new MeshPhysicalMaterial({
       envMapIntensity: 0.4,
       metalness: 0.3,
       clearcoatRoughness: 1,
@@ -396,7 +478,7 @@ const buildFrame = async () => {
     });
 
 
-    const backMesh = new THREE.Mesh(back, backMaterial);
+    const backMesh = new Mesh(back, backMaterial);
     backMesh.position.set(0, 0, -0.01)
 
     frameMesh.add(backMesh)
@@ -404,11 +486,11 @@ const buildFrame = async () => {
 
     const frameTexture = state.selectedFrameTexture
 
-    let frameMaterial = new THREE.MeshStandardMaterial({
+    let frameMaterial = new MeshStandardMaterial({
       color: 0x959595,
-      normalScale: new THREE.Vector2(1, -1),
+      normalScale: new Vector2(1, -1),
       aoMapIntensity: 0.5,
-      side: THREE.DoubleSide
+      side: DoubleSide
     });
 
     if (frameTexture.preview != null) {
@@ -417,14 +499,14 @@ const buildFrame = async () => {
       const normal = await loadTexture(frameTexture.normal)
       const specular = await loadTexture(frameTexture.specular)
 
-      frameMaterial = new THREE.MeshStandardMaterial({
+      frameMaterial = new MeshStandardMaterial({
         map: basecolor,
         metalnessMap: metallic,
         normalMap: normal,
-        normalScale: new THREE.Vector2(1, -1),
+        normalScale: new Vector2(1, -1),
         aoMapIntensity: 0.5,
         aoMap: specular,
-        side: THREE.DoubleSide
+        side: DoubleSide
       });
     }
 
@@ -491,14 +573,42 @@ const buildFrame = async () => {
 
 }
 
+const    buildFullModel = async () => {
+  const textureImage = state.artworkImage
+  const scene = new Scene();
+  const artWorkMesh = await buildArtWorkMesh(textureImage)
+  scene.add(artWorkMesh)
+  const frame = await buildFrame();
+  if (frame) {
+    scene.add(frame)
+  }
+  const gltfExporter = new GLTFExporter();
+  return new Promise((resolve) => {
+    gltfExporter.parse(
+        scene,
+        (gltf) => {
+          const gltfUrl = URL.createObjectURL(
+              new Blob([JSON.stringify(gltf)], {type: "model/gltf+json"})
+          );
+          state.modelUrl = gltfUrl;
+          resolve()
+        },
+        {binary: true}
+    );
+  })
+
+}
+
 const refreshModel = async () => {
 
-  const scene = new THREE.Scene();
-  // const renderer = new THREE.WebGLRenderer();
+  const textureImage = state.artworkImageCompressed
+
+  const scene = new Scene();
+  // const renderer = new WebGLRenderer();
   // renderer.setSize(window.innerWidth, window.innerHeight);
   // document.body.appendChild(renderer.domElement);
 
-  const artWorkMesh = await buildArtWorkMesh()
+  const artWorkMesh = await buildArtWorkMesh(textureImage)
   scene.add(artWorkMesh)
 
   const frame = await buildFrame();
@@ -535,8 +645,9 @@ const selectFrameTexture = (frameTexture) => {
 const fetchBlob = async (blobUrl) => {
   return new Promise((resolve, reject) => {
     fetch(blobUrl)
-        .then(resp => {
-          resolve(resp.blob())
+        .then(resp => resp.arrayBuffer())
+        .then(buffer => {
+          resolve(new Blob([buffer], {type: "model/gltf-binary"}))
         })
         .catch(err => reject(err))
   })
@@ -546,7 +657,10 @@ const fetchBlob = async (blobUrl) => {
 const saveProduct = async () => {
   isSaving.value = true
 
-  const modelBlob = await fetchBlob(state.gltfUrl)
+  await buildFullModel();
+
+
+  const modelBlob = await fetchBlob(state.modelUrl)
   let data = new FormData();
 
   data.append('title', state.title);
@@ -560,9 +674,9 @@ const saveProduct = async () => {
   data.append('artworkProps[typeOfFrame][texture]', state.selectedFrameTexture.id);
   data.append('projectId', state.projectId);
 
-  data.append('model', modelBlob);
-  data.append('preview', state.thumbnailFile);
-  data.append('artworkImage', state.thumbnailFile);
+  data.append('model', modelBlob, state.title + '.glb');
+  data.append('preview', state.artworkFileCompressed);
+  data.append('artworkImage', state.artworkFile);
 
   let config = {
     method: 'post',
@@ -574,15 +688,41 @@ const saveProduct = async () => {
     data: data
   };
 
+  console.log(typeof modelBlob)
+  console.log(modelBlob)
+
   axios.request(config)
       .then((response) => {
         isSaving.value = false
-        console.log(JSON.stringify(response.data));
-      })
+        Toastify({
+          text: "Product was save successfull with ID: " + response.data._id,
+          duration: 3000,
+          newWindow: true,
+          gravity: "bottom", // `top` or `bottom`
+          position: 'center', // `left`, `center` or `right`
+          stopOnFocus: true, // Prevents dismissing of toast on hover
+          style: {
+            background: "green",
+          },
+        }).showToast();
 
+
+      })
       .catch((error) => {
+        console.error(error)
         isSaving.value = false
-        console.log(error);
+
+        Toastify({
+          text: "Error while saving product!",
+          duration: 3000,
+          newWindow: true,
+          gravity: "bottom", // `top` or `bottom`
+          position: 'center', // `left`, `center` or `right`
+          stopOnFocus: true, // Prevents dismissing of toast on hover
+          style: {
+            background: "red",
+          },
+        }).showToast();
       });
 
 
@@ -592,6 +732,34 @@ const saveProduct = async () => {
 </script>
 
 <template>
+  <div v-if="isPreviewOpen"
+       class="fixed inset-0 bg-gray-600 bg-opacity-70 overflow-y-auto z-10 md:p-32 p-4 overflow-y-hidden">
+    <button @click="isPreviewOpen = false" class="px-4 py-2 bg-blue-500 text-white rounded-t-lg hover:bg-blue-700">Х
+      Close
+    </button>
+
+    <div class="bg-white h-full w-full">
+      <model-viewer
+          v-if="state.modelCompressedUrl"
+          :src="state.modelCompressedUrl"
+          ar
+          shadow-intensity="3"
+          shadow-softness="1"
+          camera-controls
+          :ar-placement="state.placement"
+          auto-rotate
+          autoplay
+          class="h-full w-full "
+      >
+
+        <button slot="ar-button" class="bg-blue-600 text-white absolute bottom-0 right-0">Show in AR</button>
+
+      </model-viewer>
+    </div>
+
+  </div>
+
+
   <div class="flex flex-col p-12">
     <div class="flex flex-row">
       <h1 class="text-2xl font-semibold ">Add / Edit product</h1>
@@ -609,7 +777,7 @@ const saveProduct = async () => {
             <option>online</option>
             <option>inProgress</option>
           </select>
-          <button>Preview</button>
+          <button @click="isPreviewOpen = true">Preview</button>
           <button>Request model service</button>
           <button class="bg-red-100 text-red-600 hover:bg-red-200" v-if="state.productId">Delete product</button>
         </div>
@@ -637,7 +805,7 @@ const saveProduct = async () => {
             </div>
             <button @click="openFileDialog" v-if="state.artworkFileCompressedUrl">Replace thumbnail</button>
           </div>
-          <div class="flex flex-col flex-1 p-4" v-if="state.artworkFile">
+          <div class="flex flex-col flex-1 p-4" v-if="state.artworkFileUrl">
             <span class="font-semibold text-sm">Product placement</span>
             <div>
               <label class="text-sm mr-2">
@@ -651,7 +819,7 @@ const saveProduct = async () => {
               <span class="font-semibold text-sm">Artwork size (longest size)</span>
             </div>
             <div class="flex flex-row items-center">
-              <input type="text" v-model="state.artWorkMaxSize"> <span class="ml-3">sm</span>
+              <input type="number" v-model="state.artWorkMaxSize"> <span class="ml-3">cm</span>
             </div>
             <div class="flex flex-row mt-2">
               <span class="mr-4 font-semibold text-sm">Add glass</span>
@@ -662,7 +830,7 @@ const saveProduct = async () => {
               <span class="font-semibold text-sm">Frame wide</span>
             </div>
             <div class="flex flex-row items-center">
-              <input type="number" min="0" v-model="state.frameThin"> <span class="ml-3">sm</span>
+              <input type="number" min="0" v-model="state.frameThin"> <span class="ml-3">cm</span>
             </div>
 
 
@@ -670,7 +838,7 @@ const saveProduct = async () => {
               <span class="font-semibold text-sm">Frame depth</span>
             </div>
             <div class="flex flex-row items-center">
-              <input type="text" v-model="state.frameDepth"> <span class="ml-3">sm</span>
+              <input type="text" v-model="state.frameDepth"> <span class="ml-3">cm</span>
             </div>
           </div>
         </div>
@@ -723,7 +891,7 @@ const saveProduct = async () => {
     </div>
 
 
-    <div class="flex flex-col mt-2" v-if="state.artworkFileCompressedUrl">
+    <div class="flex flex-col mt-2" v-if="state.artworkFileCompressedUrl   ">
       <span class="font-semibold"> Select frame texture</span>
       <div class="flex flex-row   flex-nowrap overflow-x-scroll">
         <div v-for="t in framesTexture" :key="t.id" class="frame-container   " @click="selectFrameTexture(t)"
@@ -787,5 +955,12 @@ const saveProduct = async () => {
   100% {
     transform: rotate(360deg);
   }
+}
+
+
+.toastify-center {
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
 }
 </style>

@@ -9,6 +9,10 @@ import router from './router'
 
 const app = createApp(App)
 
+
+
+// app.config.compilerOptions.isCustomElement = tag => tag === 'model-viewer';
+
 app.use(createPinia())
 app.use(GoogleSignInPlugin, {
     clientId: 'CLIENT ID OBTAINED FROM GOOGLE API CONSOLE',

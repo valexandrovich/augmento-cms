@@ -9,7 +9,15 @@ export default defineConfig({
   // base: process.env.VITE_BASE_URL,
   base: '/augmento-cms/',
   plugins: [
-    vue(),
+    vue(
+        {
+          template: {
+            compilerOptions: {
+              isCustomElement: (tag) => tag === 'model-viewer'
+            }
+          }
+        }
+    ),
     vueJsx(),
   ],
   server: {

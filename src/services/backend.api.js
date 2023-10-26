@@ -25,3 +25,16 @@ export const getProducts = async (projectId) => {
             })
     })
 }
+
+export const getProduct = async (productId) => {
+    return new Promise((resolve, reject) => {
+        axios.get(apiBaseURL + '/v1/product/product/' + productId)
+            .then(resp => {
+                resolve(resp.data)
+            })
+            .catch(err => {
+                reject(err)
+            })
+    })
+
+}
