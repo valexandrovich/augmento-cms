@@ -5,10 +5,10 @@ import {ref} from "vue";
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL;
 import axios from "@/utils/axios.config";
 
-const companyName = ref('DEV_Valexa')
-const email = ref('dev@gmail.com')
-const password = ref('Javascript!233')
-const passwordRepeat = ref('Javascript!233')
+const companyName = ref('')
+const email = ref('')
+const password = ref('')
+const passwordRepeat = ref('')
 
 const signUpError = ref(false)
 const signUpSuccess = ref(false)
@@ -53,7 +53,7 @@ const signUp = () => {
       <img src="@/assets/img/login-banner.png" alt="" class="hidden md:block object-cover rounded-3xl">
       <img src="@/assets/img/login-banner-mob.png" alt="" class="block md:hidden w-full mb-4">
     </div>
-    <div class="flex-1  items-end flex flex-col  md:pr-6">
+    <div class="flex-1  items-end flex flex-col  md:pr-6  pl-4">
       <div class=" w-full md:w-[512px] flex flex-col">
         <span class="font-bold text-xl text-center">Create an account to get started</span>
         <span class=" text-md text-center py-2">Already created an account? <a href="/login" class="text-blue-600">Sign in</a> </span>

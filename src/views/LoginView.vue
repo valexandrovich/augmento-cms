@@ -76,7 +76,7 @@ const signIn = async () => {
               Sign in with Google
               </span>
           </button>
-          <span class=" text-md text-center mt-6">Don't have an account? <a href="/sign-up" class="text-blue-600">Sign up</a> </span>
+          <span class=" text-md text-center mt-6 ">Don't have an account? <a @click="router.push('/sign-up')" class="text-blue-600 hover:underline cursor-pointer">Sign up</a> </span>
           <span class="text-red-600 text-lg text-center pt-4" v-if="signInError">Error on sign in! Try another credentials.</span>
         </div>
 
