@@ -18,10 +18,10 @@ const signInError = ref(false)
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
-// const email = ref('beloenko23@gmail.com');
-const email = ref('');
-// const password = ref('Javascript!233');
-const password = ref('');
+const email = ref('beloenko23@gmail.com');
+// const email = ref('');
+const password = ref('Javascript!233');
+// const password = ref('');
 
 const signIn = async () => {
 

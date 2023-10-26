@@ -32,12 +32,17 @@ const state = reactive({
   projectId: '',
 
 
-  thumbnailFile: null,
-  thumbnailFileType: null,
-  thumbnailFileData: null,
-  thumbnailImage: null,
+  artworkFile: null,
+  artworkFileUrl: null,
+  artworkImage: null,
 
-  gtlfUrl: null,
+  artworkFileCompressed: null,
+  artworkImageCompressed: null,
+  artworkFileCompressedUrl: null,
+
+  modelUrl: null,
+  modelCompressedUrl: null,
+
 
 
   isGlass: true,
@@ -102,25 +107,59 @@ const openFileDialog = () => {
 const handleThumbnail = async (event) => {
   const inputElement = event.target;
   if (inputElement.files && inputElement.files.length > 0) {
-    state.thumbnailFile = (event.target).files?.[0]
-    state.thumbnailFileType = state.thumbnailFile.name.match(/\.[0-9a-z]+$/i)[0];
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      state.thumbnailFileData = e.target.result
-      await loadThumbnailImage()
-      await refreshModel()
-    }
-    reader.readAsDataURL(state.thumbnailFile);
+
+    state.artworkFile = (event.target).files?.[0]
+    state.artworkFileUrl = URL.createObjectURL(state.artworkFile);
+    state.artworkImage = await loadImage(state.artworkFileUrl)
+
+    state.artworkFileCompressed = await compressImage(state.artworkFile, 0.1)
+    state.artworkFileCompressedUrl = URL.createObjectURL(state.artworkFileCompressed)
+    state.artworkImageCompressed = await loadImage(state.artworkFileCompressedUrl)
+
+    await refreshModel()
+    // state.thumbnailFileType = state.thumbnailFile.name.match(/\.[0-9a-z]+$/i)[0];
+    // const reader = new FileReader();
+    // reader.onload = async (e) => {
+    //   state.thumbnailFileData = e.target.result
+    //   await loadThumbnailImage()
+    //   await refreshModel()
+    // }
+    // reader.readAsDataURL(state.thumbnailFile);
   }
 }
 
-const loadThumbnailImage = async () => {
+const compressImage = (file, qualityCof) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.src = state.thumbnailFileData;
+    img.src = URL.createObjectURL(file);
     img.onload = () => {
-      state.thumbnailImage = img
-      resolve()
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now()
+          });
+          resolve(compressedFile);
+        } else {
+          reject(new Error("Compression failed."));
+        }
+      }, 'image/jpeg', qualityCof); // Adjust the quality (0.75) as needed
+    };
+    img.onerror = reject;
+  });
+};
+
+const loadImage = async (imageFileUrl) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = imageFileUrl;
+    img.onload = () => {
+      resolve(img)
     };
     img.onerror = reject;
   });
@@ -128,10 +167,11 @@ const loadThumbnailImage = async () => {
 
 const buildArtWorkMesh = async () => {
   return new Promise((resolve) => {
-    const texture = new THREE.Texture(state.thumbnailImage);
-    const longerSide = state.thumbnailImage.height > state.thumbnailImage.width ? 'height' : 'width'
-    const hCof = state.thumbnailImage.height / state.thumbnailImage.width
-    const wCof = state.thumbnailImage.width / state.thumbnailImage.height
+    const texture = new THREE.Texture(state.artworkImage);
+    const longerSide = state.artworkImage.height > state.artworkImage.width ? 'height' : 'width'
+    const hCof = state.artworkImage.height / state.artworkImage.width
+    const wCof = state.artworkImage.width / state.artworkImage.height
+
     if (longerSide === 'height') {
       state.artworkMeshYm = state.artWorkMaxSize / 100
       state.artworkMeshXm = wCof * state.artworkMeshYm
@@ -467,10 +507,6 @@ const refreshModel = async () => {
     scene.add(frame)
   }
 
-
-  console.log()
-
-
   const gltfExporter = new GLTFExporter();
   gltfExporter.parse(
       scene,
@@ -479,7 +515,7 @@ const refreshModel = async () => {
             new Blob([JSON.stringify(gltf)], {type: "model/gltf+json"})
         );
         // gltfToBlob(gltfUrl);
-        state.gltfUrl = gltfUrl;
+        state.modelCompressedUrl = gltfUrl;
       },
       {binary: true}
   );
@@ -593,15 +629,15 @@ const saveProduct = async () => {
             <div class="mb-2">
               <input type="file" accept="image/*" class="hidden" ref="fileInput" @change="handleThumbnail">
 
-              <img v-if="state.thumbnailFileData" :src="state.thumbnailFileData" alt="" class="w-full h-full">
+              <img v-if="state.artworkFileCompressedUrl" :src="state.artworkFileCompressedUrl" alt="" class="">
               <div v-else
                    class=" p-12 outline outline-2 outline-gray-300 outline-dashed text-center text-gray-500 font-semibold capitalize cursor-pointer hover:bg-gray-200"
                    @click="openFileDialog"> Pick up file
               </div>
             </div>
-            <button @click="openFileDialog" v-if="state.thumbnailFileData">Replace thumbnail</button>
+            <button @click="openFileDialog" v-if="state.artworkFileCompressedUrl">Replace thumbnail</button>
           </div>
-          <div class="flex flex-col flex-1 p-4" v-if="state.thumbnailFile">
+          <div class="flex flex-col flex-1 p-4" v-if="state.artworkFile">
             <span class="font-semibold text-sm">Product placement</span>
             <div>
               <label class="text-sm mr-2">
@@ -639,14 +675,14 @@ const saveProduct = async () => {
           </div>
         </div>
       </div>
-      <div class="flex flex-1 flex-col " v-if="state.thumbnailFileData">
+      <div class="flex flex-1 flex-col " v-if="state.modelCompressedUrl">
         <h3>Preview of 3D model</h3>
         <div class="flex bg-white rounded-lg p-2  justify-center items-center align-middle  relative ">
 
 
           <model-viewer
-              v-if="state.gltfUrl"
-              :src="state.gltfUrl"
+              v-if="state.modelCompressedUrl"
+              :src="state.modelCompressedUrl"
               style="min-height: 300px; width: 100%;"
               ar
               shadow-intensity="3"
@@ -665,7 +701,7 @@ const saveProduct = async () => {
     </div>
 
 
-    <div class="flex flex-col mt-2" v-if="state.thumbnailFile">
+    <div class="flex flex-col mt-2" v-if="state.artworkFileCompressedUrl">
       <span class="font-semibold"> Select frame model</span>
       <div class="flex flex-row   flex-nowrap overflow-x-scroll">
         <div v-for="f in framesMesh" :key="f.id" class="frame-container" @click="selectFrameMesh(f)"
@@ -687,7 +723,7 @@ const saveProduct = async () => {
     </div>
 
 
-    <div class="flex flex-col mt-2" v-if="state.thumbnailFile">
+    <div class="flex flex-col mt-2" v-if="state.artworkFileCompressedUrl">
       <span class="font-semibold"> Select frame texture</span>
       <div class="flex flex-row   flex-nowrap overflow-x-scroll">
         <div v-for="t in framesTexture" :key="t.id" class="frame-container   " @click="selectFrameTexture(t)"

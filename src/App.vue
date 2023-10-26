@@ -8,11 +8,13 @@ import router from "@/router";
 
 onMounted(() => {
   const jwtToken = localStorage.getItem('jwt')
-  if (jwtToken){
+  if (jwtToken) {
     axios.defaults.headers.common['Authorization'] = 'Bearer ' + jwtToken
-  } else {
-    router.push('/login')
   }
+  // } else {
+  //   alert('Pushing')
+  //   router.push('/login')
+  // }
 
 
   //
